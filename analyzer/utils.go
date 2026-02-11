@@ -2,37 +2,68 @@ package analyzer
 
 import (
 	"go/ast"
+	"go/token"
 	"go/types"
-	"strings"
+	"strconv"
 
+	"github.com/Hirogava/Go-Log-Linter/analyzer/rules"
 	"golang.org/x/tools/go/analysis"
 )
 
-func isLogCall(call *ast.CallExpr, pass *analysis.Pass) bool {
-	sel, ok := call.Fun.(*ast.SelectorExpr)
-	if !ok {
-		return false
+func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
+	if len(call.Args) == 0 {
+		return
 	}
 
-	if selection := pass.TypesInfo.Selections[sel]; selection != nil {
-		str := selection.Recv().String()
+	var msg string
+	var err error
 
-		if strings.Contains(str, "log/slog") || strings.Contains(str, "go.uber.org/zap") {
-			return true
+	msgLit, ok := call.Args[0].(*ast.BasicLit)
+	if ok && msgLit.Kind == token.STRING {
+		msg, err = parseStringLiteral(msgLit.Value)
+		if err != nil {
+			return
 		}
 	}
 
-	if obj := pass.TypesInfo.Uses[sel.Sel]; obj != nil {
-		if pkg := obj.Pkg(); pkg != nil {
-			path := pkg.Path()
+	msgBin, ok := call.Args[0].(*ast.BinaryExpr)
+	if ok {
+		left, ok := msgBin.X.(*ast.BasicLit)
+		if ok && left.Kind == token.STRING {
+			msg, err = parseStringLiteral(left.Value)
+		}
 
-			if path == "log/slog" || path == "go.uber.org/zap" {
-				return true
+		right, ok := msgBin.Y.(*ast.BasicLit)
+		if ok && right.Kind == token.STRING {
+			rightMsg, err := parseStringLiteral(right.Value)
+			if err == nil {
+				msg += rightMsg
+			}
+		} else if ok && right.Kind == token.IDENT {
+			ident, ok := msgBin.Y.(*ast.Ident)
+			if ok {
+				rules.SensitiveRule.Check(rules.SensitiveRule{}, ident.Name)
 			}
 		}
 	}
 
-	return false
+	if msg == "" {
+		return
+	}
+
+	for _, rule := range rules.Rules {
+		if err := rule.Check(msg); err != nil {
+			pass.Reportf(call.Pos(), "%s", err.Error())
+		}
+	}
+}
+
+func parseStringLiteral(s string) (string, error) {
+	if len(s) < 2 {
+		return "", nil
+	}
+
+	return strconv.Unquote(s)
 }
 
 func getPackagePath(t types.Type) string {

@@ -2,8 +2,6 @@ package analyzer
 
 import (
 	"go/ast"
-	"go/token"
-	"strconv"
 
 	"golang.org/x/tools/go/analysis"
 )
@@ -32,34 +30,4 @@ func run(pass *analysis.Pass) (interface{}, error) {
     }
 
     return nil, nil
-}
-
-func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
-	if len(call.Args) == 0 {
-		return
-	}
-
-	msgLit, ok := call.Args[0].(*ast.BasicLit)
-	if !ok || msgLit.Kind != token.STRING {
-		return
-	}
-
-	msg, err := parseStringLiteral(msgLit.Value)
-	if err != nil {
-		return
-	}
-	
-	for _, rule := range rules {
-		if err := rule.Check(msg); err != nil {
-			pass.Reportf(call.Pos(), "%s", err.Error())
-		}
-	}
-}
-
-func parseStringLiteral(s string) (string, error) {
-	if len(s) < 2 {
-		return "", nil
-	}
-
-	return strconv.Unquote(s)
 }

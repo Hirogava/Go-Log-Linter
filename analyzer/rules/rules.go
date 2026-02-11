@@ -1,4 +1,4 @@
-package analyzer
+package rules
 
 import (
 	"errors"
@@ -19,7 +19,7 @@ type Rule interface {
 	Check(message string) error
 }
 
-var rules = []Rule{
+var Rules = []Rule{
 	LowercaseRule{},
 	EnglishRule{},
 	SpecialCharRule{},
@@ -52,6 +52,11 @@ func (r EnglishRule) Check(msg string) error {
 func (r SpecialCharRule) Check(msg string) error {
     for _, r := range msg {
 		if unicode.IsLetter(r) || unicode.IsDigit(r) || unicode.IsSpace(r) {
+			continue
+		}
+
+		switch r {
+		case '.', '-', '_':
 			continue
 		}
 
