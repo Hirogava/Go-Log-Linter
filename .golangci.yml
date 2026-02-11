@@ -1,0 +1,9 @@
+linters-settings:
+  custom:
+    loglint:
+      path: ./loglint.so
+      description: "Log linter for checking log message conventions"
+
+linters:
+  enable:
+    - loglint

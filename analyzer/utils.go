@@ -10,7 +10,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
+func checkLogCall(pass *analysis.Pass, call *ast.CallExpr, cfg *Config) {
 	if len(call.Args) == 0 {
 		return
 	}
@@ -39,11 +39,6 @@ func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
 			if err == nil {
 				msg += rightMsg
 			}
-		} else if ok && right.Kind == token.IDENT {
-			ident, ok := msgBin.Y.(*ast.Ident)
-			if ok {
-				rules.SensitiveRule.Check(rules.SensitiveRule{}, ident.Name)
-			}
 		}
 	}
 
@@ -51,7 +46,8 @@ func checkLogCall(pass *analysis.Pass, call *ast.CallExpr) {
 		return
 	}
 
-	for _, rule := range rules.Rules {
+	ruleChecker := rules.NewChecker(cfg)
+	for _, rule := range ruleChecker.Rules() {
 		if err := rule.Check(msg); err != nil {
 			pass.Reportf(call.Pos(), "%s", err.Error())
 		}
