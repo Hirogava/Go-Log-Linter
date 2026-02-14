@@ -126,6 +126,8 @@ golangci-lint run --linter-settings=loglint.allow-exclamation=true ./...
 
 ### Конфигурация через .golangci.yml
 
+**Для использования в ВАШИХ проектах** создайте `.golangci.yml`:
+
 ```yaml
 linters-settings:
   custom:
@@ -137,6 +139,8 @@ linters:
   enable:
     - loglint
 ```
+
+**Примечание:** `.golangci.yml` в корне этого репозитория используется для проверки кода САМОГО линтера стандартными Go-линтерами, а не для демонстрации использования loglint.
 
 Для передачи дополнительных параметров:
 
@@ -163,6 +167,16 @@ linters-settings:
       path: ./loglint.so
 ```
 *Флаги передаются через CLI: `golangci-lint run --linter-settings 'loglint.allow-exclamation=true'`*
+
+Через CLI при использовании как отдельный инструмент:
+```bash
+./bin/loglint -allow-exclamation ./...
+```
+
+Или через golangci-lint:
+```bash
+golangci-lint run --linter-settings 'loglint.allow-exclamation=true'
+```
 
 **Добавить собственные чувствительные ключевые слова:**
 Отредактируйте конфигурацию в `analyzer/config.go` или передайте через программный API:
