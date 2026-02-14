@@ -1,5 +1,7 @@
 # Go-Log-Linter
 
+[![CI](https://github.com/Hirogava/Go-Log-Linter/workflows/CI/badge.svg)](https://github.com/Hirogava/Go-Log-Linter/actions)
+
 Мощный анализатор кода для проверки соглашений о логировании в Go. Поддерживает оба логгера: `log/slog` и `go.uber.org/zap` с интерфейсом `Sugar()`.
 
 ## Возможности

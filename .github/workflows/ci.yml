@@ -1,0 +1,126 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go-version: ['1.23', '1.24']
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: ${{ matrix.go-version }}
+
+    - name: Cache Go modules
+      uses: actions/cache@v4
+      with:
+        path: |
+          ~/go/pkg/mod
+          ~/.cache/go-build
+        key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+        restore-keys: |
+          ${{ runner.os }}-go-
+
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify dependencies
+      run: go mod verify
+
+    - name: Run go vet
+      run: go vet ./...
+
+    - name: Run tests
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
+
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: ./coverage.txt
+        flags: unittests
+        name: codecov-umbrella
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: Build for Linux
+      run: |
+        GOOS=linux GOARCH=amd64 go build -o bin/loglint-linux-amd64 ./cmd/loglint
+
+    - name: Build for Windows
+      run: |
+        GOOS=windows GOARCH=amd64 go build -o bin/loglint-windows-amd64.exe ./cmd/loglint
+
+    - name: Build for macOS
+      run: |
+        GOOS=darwin GOARCH=amd64 go build -o bin/loglint-darwin-amd64 ./cmd/loglint
+        GOOS=darwin GOARCH=arm64 go build -o bin/loglint-darwin-arm64 ./cmd/loglint
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: binaries
+        path: bin/
+
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.24'
+
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v4
+      with:
+        version: latest
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    needs: [test, build, lint]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Download artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: binaries
+        path: bin/
+    
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: bin/*
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
