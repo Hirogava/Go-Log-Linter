@@ -31,6 +31,9 @@ func checkLogCall(pass *analysis.Pass, call *ast.CallExpr, cfg *Config) {
 		left, ok := msgBin.X.(*ast.BasicLit)
 		if ok && left.Kind == token.STRING {
 			msg, err = parseStringLiteral(left.Value)
+			if err != nil {
+				return
+			}
 		}
 
 		right, ok := msgBin.Y.(*ast.BasicLit)
@@ -48,8 +51,8 @@ func checkLogCall(pass *analysis.Pass, call *ast.CallExpr, cfg *Config) {
 
 	ruleChecker := rules.NewChecker(cfg)
 	for _, rule := range ruleChecker.Rules() {
-		if err := rule.Check(msg); err != nil {
-			pass.Reportf(call.Pos(), "%s", err.Error())
+		if ruleErr := rule.Check(msg); ruleErr != nil {
+			pass.Reportf(call.Pos(), "%s", ruleErr.Error())
 		}
 	}
 }

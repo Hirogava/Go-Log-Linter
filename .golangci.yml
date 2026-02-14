@@ -10,10 +10,9 @@ linters:
     - gosimple     # Упрощение кода
     - ineffassign  # Неэффективные присваивания
     - typecheck    # Проверка типов
+    - shadow       # Проверка затенения переменных
 
 linters-settings:
-  govet:
-    check-shadowing: true  # Проверка затенения переменных
   errcheck:
     check-blank: true      # Проверка _ = err
 
@@ -25,5 +24,9 @@ issues:
   exclude-rules:
     # Исключаем testdata из проверок (это примеры с ошибками)
     - path: testdata/
+      linters:
+        - all
+    # Исключаем example_project (это демо с намеренными ошибками)
+    - path: example_project/
       linters:
         - all
